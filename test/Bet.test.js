@@ -50,14 +50,14 @@ contract('Bet', (accounts) => {
 
   it('should NOT flipCoin if no value is sent', async () => {
     const bet = await Bet.deployed();
-    await truffleAssert.fails(bet.flipCoin({ value: 0, from: guest }));
+    await truffleAssert.fails(bet.flipCoin(1, { value: 0, from: guest }));
   });
 
   it('should NOT flipCoin if value can not be doubled', async () => {
     const bet = await Bet.deployed();
     const balance = await web3.eth.getBalance(bet.address);
     const value = new BN(balance).div(new BN(2)).add(new BN(1)).toString();
-    await truffleAssert.fails(bet.flipCoin({ value, from: guest }));
+    await truffleAssert.fails(bet.flipCoin(1, { value, from: guest }));
   });
 
   it('should flipCoin and double or zero gets money', async () => {
@@ -65,7 +65,7 @@ contract('Bet', (accounts) => {
     const value = (1000).gwei;
     const results = await Promise.all(
       Array.from({ length: 6 }).map((_, i) =>
-        bet.flipCoin.call({ value, from: accounts[i + 1] }),
+        bet.flipCoin.call(1, { value, from: accounts[i + 1] }),
       ),
     );
     const zero = new BN(0);
