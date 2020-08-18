@@ -11,6 +11,8 @@ contract Bet is Ownable, Destroyable {
 
   uint private nonce = 0;
 
+  event coinFlipped(uint won);
+
   function flipCoin(uint betOn) public payable returns(uint) {
     require(betOn <= 1, "You can bet on 1 or 0");
     require(msg.value > 0, "Needs an ETH amount to bet");
@@ -18,11 +20,12 @@ contract Bet is Ownable, Destroyable {
     require(msg.value <= maxBet, "Not enought funds to accept bet");
     // TODO make this actual random
     uint flip = uint(keccak256(abi.encodePacked(block.timestamp, msg.sender, nonce))) % 2;
+    uint wonBet = 0;
     if (flip == betOn) {
-      uint wonBet = msg.value * 2;
+      wonBet = msg.value * 2;
       msg.sender.transfer(wonBet);
-      return wonBet;
     }
-    return 0;
+    emit coinFlipped(wonBet);
+    return wonBet;
   }
 }

@@ -62,9 +62,9 @@ contract('Bet', (accounts) => {
 
   it('should flipCoin and double or zero gets money', async () => {
     const bet = await Bet.deployed();
-    const value = (1000).gwei;
+    const value = (0.5).ether;
     const results = await Promise.all(
-      Array.from({ length: 6 }).map((_, i) =>
+      Array.from({ length: 7 }).map((_, i) =>
         bet.flipCoin.call(1, { value, from: accounts[i + 1] }),
       ),
     );

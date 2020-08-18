@@ -3,7 +3,7 @@ import web3 from '../web3.js';
 
 export const account = writable(null);
 
-export const balance = derived(
+export const accountBalance = derived(
   [account],
   ([$account], set) => {
     if (!web3.utils.isAddress($account)) {
