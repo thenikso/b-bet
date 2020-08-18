@@ -4,11 +4,13 @@
   import ConnectMetamask from "./components/ConnectMetamask.svelte";
   import Wallet from "./components/Wallet.svelte";
   import web3 from "./web3.js";
+  import confetti from "canvas-confetti";
 
   let betContract;
   let betAmount;
   let betHead = true;
   let betting = false;
+  let resultMessage;
 
   $: maxBet = Math.min($contractBalance / 2, $accountBalance);
 
@@ -17,7 +19,7 @@
   }
 
   async function flipCoin() {
-    if (betAmount <= 0 || betAmount > maxBet) {
+    if (typeof betAmount !== "number" || betAmount <= 0 || betAmount > maxBet) {
       return;
     }
     betting = true;
@@ -33,10 +35,79 @@
       );
       betAmount = undefined;
       betting = false;
-      console.log("win:", wonAmount !== "0");
+      if (wonAmount !== "0") {
+        fireworks();
+      } else {
+        snow();
+      }
     } catch (e) {
       betting = false;
     }
+  }
+
+  function fireworks(duration = 3000) {
+    resultMessage = "You won!!!";
+    const animationEnd = Date.now() + duration;
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+    function randomInRange(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    const interval = setInterval(function() {
+      const timeLeft = animationEnd - Date.now();
+
+      if (timeLeft <= 0) {
+        resultMessage = undefined;
+        return clearInterval(interval);
+      }
+
+      const particleCount = 50 * (timeLeft / duration);
+      confetti(
+        Object.assign({}, defaults, {
+          particleCount,
+          origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+        })
+      );
+      confetti(
+        Object.assign({}, defaults, {
+          particleCount,
+          origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+        })
+      );
+    }, 250);
+  }
+
+  function snow(duration = 2000) {
+    resultMessage = "You lost :(";
+    const animationEnd = Date.now() + duration;
+    let skew = 1;
+
+    (function frame() {
+      const timeLeft = animationEnd - Date.now();
+      const ticks = Math.max(200, 500 * (timeLeft / duration));
+      skew = Math.max(0.8, skew - 0.001);
+
+      confetti({
+        particleCount: 1,
+        startVelocity: 0,
+        ticks,
+        gravity: 0.5,
+        origin: {
+          x: Math.random(),
+          // since particles fall down, skew start toward the top
+          y: Math.random() * skew - 0.2
+        },
+        colors: ["#dddddd"],
+        shapes: ["circle"]
+      });
+
+      if (timeLeft > 0) {
+        requestAnimationFrame(frame);
+      } else {
+        resultMessage = undefined;
+      }
+    })();
   }
 </script>
 
@@ -208,7 +279,7 @@
       <Wallet balance={$accountBalance} {account} />
     </ConnectMetamask>
   </header>
-  <h1 class="title">You Bet!</h1>
+  <h1 class="title">{resultMessage || 'You Bet!'}</h1>
   <div class="bet-form">
     <div class="input-wrapper">
       <label for="amount">Bet amount</label>
