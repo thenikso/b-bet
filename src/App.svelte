@@ -6,7 +6,6 @@
   import web3 from "./web3.js";
   import confetti from "canvas-confetti";
 
-  let betContract;
   let betAmount;
   let betHead = true;
   let betting = false;
@@ -26,20 +25,23 @@
     const value = web3.utils.toWei(String(betAmount), "ether");
     console.log("Begging", value);
     try {
+      $contract.events.betResolved().once("data", event => {
+        const { betId: resolvedId, winAmount } = event.returnValues;
+        console.log("betResolved", resolvedId, requestId, winAmount);
+        if (requestId !== resolvedId) {
+          // TODO this should not happen
+        }
+        betting = false;
+        if (winAmount !== "0") {
+          fireworks();
+        } else {
+          snow();
+        }
+      });
       const result = await $contract.methods
         .flipCoin(betHead ? 1 : 0)
         .send({ value });
-      const wonAmount = web3.utils.fromWei(
-        result.events.coinFlipped.returnValues.won,
-        "ether"
-      );
-      betAmount = undefined;
-      betting = false;
-      if (wonAmount !== "0") {
-        fireworks();
-      } else {
-        snow();
-      }
+      const requestId = result.events.betPlaced.returnValues.betId;
     } catch (e) {
       betting = false;
     }

@@ -8,4 +8,8 @@ abstract contract Ownable {
     require(msg.sender == owner);
     _;
   }
+
+  function transferOwnership(address newOwner) public ownerOnly {
+    owner = newOwner;
+  }
 }

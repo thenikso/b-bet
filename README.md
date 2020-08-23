@@ -6,6 +6,9 @@ assignment of creating a smart contract and dapp to bet on a coin flip.
 
 ![b-bet](public/b-bet.gif)
 
+This project also contains a (naive) oracle implemented in node to provide random
+numbers to the blockchain.
+
 ## Local setup
 
 Install dependencies using `yarn install` in the project's root. `npm install`
@@ -14,7 +17,7 @@ should work the same.
 ### Contract setup
 
 1. Have [Ganache](https://www.trufflesuite.com/ganache) up an running
-2. Run `yarn migrate` to deploy the contract on the local Ganache network
+2. Run `yarn migrate --reset` to deploy the contract on the local Ganache network
 
 ### Wallet setup
 
@@ -24,6 +27,18 @@ should work the same.
    (usually `http://127.0.0.1:7545`)
 3. In the wallet accounts, select "import account" and use one of the Ganache
    generated private address
+
+### Oracle setup
+
+1. From Ganache get the private key of the account with index 3
+   (:warning: only use local, test only key that you can expose)
+2. From Ganache get the Oracle deployed contract address
+3. Run the oracle with
+   ```
+   node oracle.js -a <private_key_index_3> -c <oracle_contract_address>
+   ```
+4. The oracle should now be listening to the blockchain, use `ctrl-C` twice to
+   quit
 
 ### Dapp setup
 

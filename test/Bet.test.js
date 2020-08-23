@@ -1,6 +1,8 @@
 const truffleAssert = require('truffle-assertions');
 const Bet = artifacts.require('Bet');
+const Oracle = artifacts.require('Oracle');
 const BN = web3.utils.BN;
+const { spawn } = require('child_process');
 
 if (typeof Number.prototype.ether === 'undefined') {
   Object.defineProperties(Number.prototype, {
@@ -21,9 +23,26 @@ contract('Bet', (accounts) => {
   const owner = accounts[0];
   const guest = accounts[1];
 
-  after(async () => {
+  let oracle;
+  let oracleProcess;
+
+  before(async () => {
     const bet = await Bet.deployed();
-    await bet.destroy();
+    console.log('Bet contract address', bet.address);
+    oracle = await Oracle.deployed();
+    const { promise, resolve } = deferred();
+    oracleProcess = spawn('node', ['oracle.js', '-c', oracle.address]);
+    oracleProcess.stdout.on('data', (data) => {
+      console.log(`oracle: ${data}`);
+      resolve();
+    });
+    await promise;
+  });
+
+  after(async () => {
+    oracleProcess.kill();
+    const bet = await Bet.deployed();
+    bet.destroy();
   });
 
   it('should have 1 ETH when deployed', async () => {
@@ -60,18 +79,36 @@ contract('Bet', (accounts) => {
     await truffleAssert.fails(bet.flipCoin(1, { value, from: guest }));
   });
 
-  it('should flipCoin and double or zero gets money', async () => {
+  it('should accept a bet', async () => {
     const bet = await Bet.deployed();
-    const value = (0.5).ether;
-    const results = await Promise.all(
-      Array.from({ length: 7 }).map((_, i) =>
-        bet.flipCoin.call(1, { value, from: accounts[i + 1] }),
-      ),
-    );
-    const zero = new BN(0);
-    const won = results.filter((v) => v.gt(zero));
-    const lost = results.filter((v) => v.eq(zero));
-    assert(won.length > 0, 'Nothing was won!');
-    assert(lost.length > 0, 'Nothing was lost!');
+    const value = (0.1).ether;
+    const { promise: betResolvedEvent, resolve } = deferred();
+    bet.betResolved().on('data', (event) => {
+      resolve(event);
+    });
+    const place = await bet.flipCoin(1, { value, from: guest });
+    const betPlaced = place.logs[0].args;
+    const res = await Promise.race([betResolvedEvent, timeout(5000, true)]);
+    const betResolved = res.returnValues;
+    assert.equal(betPlaced.betId, betResolved.betId);
+    assert.equal(betPlaced.player, betResolved.player);
+    assert.equal(betPlaced.amount, betResolved.amount);
   });
 });
+
+function deferred() {
+  let resolve, reject;
+  const promise = new Promise((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
+function timeout(ms, rejectInstead) {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      rejectInstead ? reject('timeout') : resolve();
+    }, ms);
+  });
+}
